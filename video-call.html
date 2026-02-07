@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus | Premium Video Connect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.33);
+                opacity: 0;
+            }
+
+            80%,
+            100% {
+                opacity: 0;
+            }
+        }
+
+        .joining-anim {
+            animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        video {
+            object-fit: cover;
+            transform: scaleX(-1);
+            /* Mirror effect for self-view */
+        }
+
+        #remote-video {
+            transform: scaleX(1);
+            /* No mirror for friend */
+        }
+    </style>
+</head>
+
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+
+    <div id="app"
+        class="w-full max-w-6xl aspect-video glass rounded-3xl overflow-hidden shadow-2xl flex flex-col relative">
+
+        <header class="p-6 flex justify-between items-center border-b border-white/10">
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                <h1 class="text-xl font-bold tracking-tight">NEXUS <span
+                        class="text-slate-400 font-light">CONNECT</span></h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="px-4 py-2 bg-slate-800/50 rounded-full border border-white/10 flex items-center gap-2">
+                    <span class="text-xs uppercase text-slate-400 font-semibold tracking-widest">My Key:</span>
+                    <span id="my-id" class="text-blue-400 font-mono">Connecting...</span>
+                    <button onclick="copyId()" class="hover:text-white transition-colors"><i data-lucide="copy"
+                            class="w-4 h-4"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 p-6 flex gap-6 relative overflow-hidden">
+            <div class="flex-1 bg-slate-800 rounded-2xl overflow-hidden relative border border-white/5">
+                <video id="remote-video" class="w-full h-full bg-black" autoplay playsinline></video>
+                <div id="placeholder" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-800">
+                    <div class="w-20 h-20 bg-slate-700 rounded-full flex items-center justify-center mb-4">
+                        <i data-lucide="user" class="w-10 h-10 text-slate-500"></i>
+                    </div>
+                    <p class="text-slate-400">Waiting for participant...</p>
+                </div>
+            </div>
+
+            <div
+                class="w-72 h-48 absolute bottom-10 right-10 rounded-xl overflow-hidden shadow-2xl border-2 border-white/20 z-10 bg-slate-700">
+                <video id="local-video" class="w-full h-full" autoplay muted playsinline></video>
+                <div class="absolute bottom-2 left-2 px-2 py-1 bg-black/50 rounded text-[10px] backdrop-blur-md">YOU
+                </div>
+            </div>
+        </main>
+
+        <footer class="p-8 flex justify-center items-center gap-6">
+            <div class="flex items-center gap-2 bg-slate-800 p-2 rounded-2xl border border-white/10">
+                <input type="text" id="remote-id" placeholder="Paste Friend's Key..."
+                    class="bg-transparent border-none outline-none px-4 py-2 w-64 text-sm">
+                <button onclick="makeCall()" id="call-btn"
+                    class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl transition-all flex items-center gap-2 font-medium">
+                    <i data-lucide="phone-forwarded" class="w-4 h-4"></i> Join Room
+                </button>
+            </div>
+
+            <div class="flex gap-4">
+                <button
+                    class="p-4 rounded-full bg-slate-800 hover:bg-slate-700 border border-white/10 transition-colors">
+                    <i data-lucide="mic" class="w-5 h-5"></i>
+                </button>
+                <button
+                    class="p-4 rounded-full bg-slate-800 hover:bg-slate-700 border border-white/10 transition-colors">
+                    <i data-lucide="video" class="w-5 h-5"></i>
+                </button>
+                <button
+                    class="p-4 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white border border-red-500/50 transition-all">
+                    <i data-lucide="phone-off" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </footer>
+
+        <div id="loading-overlay"
+            class="hidden absolute inset-0 z-50 bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center">
+            <div class="relative">
+                <div class="w-24 h-24 rounded-full border-4 border-blue-500/30"></div>
+                <div class="absolute inset-0 w-24 h-24 rounded-full border-4 border-blue-500 joining-anim"></div>
+            </div>
+            <p class="mt-6 text-xl font-medium tracking-widest text-blue-400">ESTABLISHING ENCRYPTED LINK</p>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        const peer = new Peer();
+        const localVideo = document.getElementById('local-video');
+        const remoteVideo = document.getElementById('remote-video');
+        const overlay = document.getElementById('loading-overlay');
+        const placeholder = document.getElementById('placeholder');
+        let localStream;
+
+        // Get ID
+        peer.on('open', (id) => {
+            document.getElementById('my-id').innerText = id;
+        });
+
+        // Setup Camera
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            .then(stream => {
+                localStream = stream;
+                localVideo.srcObject = stream;
+            });
+
+        // Answer Call
+        peer.on('call', call => {
+            showLoading();
+            call.answer(localStream);
+            call.on('stream', userStream => {
+                handleRemoteStream(userStream);
+            });
+        });
+
+        function makeCall() {
+            const destId = document.getElementById('remote-id').value;
+            if (!destId) return;
+
+            showLoading();
+            const call = peer.call(destId, localStream);
+            call.on('stream', userStream => {
+                handleRemoteStream(userStream);
+            });
+        }
+
+        function handleRemoteStream(stream) {
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                placeholder.classList.add('hidden');
+                remoteVideo.srcObject = stream;
+            }, 2000); // Artificial delay for smooth animation feel
+        }
+
+        function showLoading() {
+            overlay.classList.remove('hidden');
+        }
+
+        async function copyId() {
+            const id = document.getElementById('my-id').innerText;
+            await navigator.clipboard.writeText(id);
+            alert("ID Copied to Clipboard!");
+        }
+    </script>
+</body>
+
+</html>
