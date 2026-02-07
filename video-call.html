@@ -4,181 +4,296 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus | Premium Video Connect</title>
+    <title>Nexus | Immersive Connect</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    animation: { 'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
+                }
+            }
+        }
+    </script>
+
     <style>
-        @keyframes pulse-ring {
-            0% {
-                transform: scale(0.33);
-                opacity: 0;
-            }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 
-            80%,
-            100% {
-                opacity: 0;
-            }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
         }
 
-        .joining-anim {
-            animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-        }
-
+        /* Glassmorphism Utilities */
         .glass {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
+        .glass-heavy {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Video Styling */
         video {
+            width: 100%;
+            height: 100%;
             object-fit: cover;
-            transform: scaleX(-1);
-            /* Mirror effect for self-view */
         }
 
-        #remote-video {
-            transform: scaleX(1);
-            /* No mirror for friend */
+        /* Mirror local video */
+        #local-video {
+            transform: scaleX(-1);
+        }
+
+        /* Hide scrollbars */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
         }
     </style>
 </head>
 
-<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+<body class="h-screen w-screen overflow-hidden text-white selection:bg-blue-500 selection:text-white">
 
-    <div id="app"
-        class="w-full max-w-6xl aspect-video glass rounded-3xl overflow-hidden shadow-2xl flex flex-col relative">
+    <div class="absolute inset-0 z-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <video id="remote-video" autoplay playsinline
+            class="w-full h-full opacity-0 transition-opacity duration-1000"></video>
 
-        <header class="p-6 flex justify-between items-center border-b border-white/10">
-            <div class="flex items-center gap-2">
-                <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                <h1 class="text-xl font-bold tracking-tight">NEXUS <span
-                        class="text-slate-400 font-light">CONNECT</span></h1>
-            </div>
-            <div class="flex items-center gap-4">
-                <div class="px-4 py-2 bg-slate-800/50 rounded-full border border-white/10 flex items-center gap-2">
-                    <span class="text-xs uppercase text-slate-400 font-semibold tracking-widest">My Key:</span>
-                    <span id="my-id" class="text-blue-400 font-mono">Connecting...</span>
-                    <button onclick="copyId()" class="hover:text-white transition-colors"><i data-lucide="copy"
-                            class="w-4 h-4"></i></button>
+        <div id="status-display"
+            class="absolute inset-0 flex flex-col items-center justify-center transition-all duration-500">
+            <div class="relative">
+                <div class="absolute inset-0 bg-blue-500 rounded-full blur-3xl opacity-20 animate-pulse-slow"></div>
+                <div
+                    class="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/10 mb-6">
+                    <span class="material-icons-round text-4xl text-blue-400">videocam</span>
                 </div>
             </div>
-        </header>
+            <h2 class="text-2xl font-light tracking-wide text-slate-200">Waiting for connection...</h2>
+            <p class="text-slate-500 mt-2 text-sm">Share your key to start the call</p>
+        </div>
+    </div>
 
-        <main class="flex-1 p-6 flex gap-6 relative overflow-hidden">
-            <div class="flex-1 bg-slate-800 rounded-2xl overflow-hidden relative border border-white/5">
-                <video id="remote-video" class="w-full h-full bg-black" autoplay playsinline></video>
-                <div id="placeholder" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-800">
-                    <div class="w-20 h-20 bg-slate-700 rounded-full flex items-center justify-center mb-4">
-                        <i data-lucide="user" class="w-10 h-10 text-slate-500"></i>
+    <div class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 sm:p-6">
+
+        <div class="pointer-events-auto w-full flex justify-center">
+            <div
+                class="glass rounded-2xl p-2 flex flex-col sm:flex-row items-center gap-2 sm:gap-4 shadow-2xl max-w-2xl w-full sm:w-auto transition-all">
+
+                <div
+                    class="flex items-center gap-3 bg-slate-800/50 px-4 py-2 rounded-xl border border-white/5 w-full sm:w-auto justify-between">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">My Key</span>
+                        <span id="my-id" class="font-mono text-blue-400 font-medium tracking-wide">Generating...</span>
                     </div>
-                    <p class="text-slate-400">Waiting for participant...</p>
+                    <button onclick="copyId()"
+                        class="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+                        title="Copy to clipboard">
+                        <span class="material-icons-round text-lg text-slate-300">content_copy</span>
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <input type="text" id="friend-id" placeholder="Enter Friend's Key"
+                        class="bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all w-full sm:w-48 font-mono placeholder:text-slate-600">
+
+                    <button onclick="joinCall()" id="btn-join"
+                        class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium shadow-lg shadow-blue-900/20 transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap">
+                        <span>Join</span>
+                        <span class="material-icons-round text-sm">login</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col-reverse sm:flex-row items-end sm:items-end justify-between w-full gap-4 relative">
+
+            <div
+                class="pointer-events-auto w-full sm:w-auto sm:absolute sm:left-1/2 sm:-translate-x-1/2 sm:bottom-0 flex justify-center">
+                <div class="glass-heavy px-6 py-4 rounded-3xl flex items-center gap-6 shadow-2xl ring-1 ring-white/10">
+
+                    <button id="btn-mic" onclick="toggleAudio()"
+                        class="group flex flex-col items-center gap-1 transition-all active:scale-95">
+                        <div
+                            class="w-12 h-12 rounded-full bg-slate-700/50 group-hover:bg-slate-600 text-white flex items-center justify-center border border-white/10 transition-colors relative overflow-hidden">
+                            <span class="material-icons-round text-xl relative z-10" id="icon-mic">mic</span>
+                            <div class="absolute inset-0 bg-red-500 opacity-0 transition-opacity" id="bg-mic"></div>
+                        </div>
+                    </button>
+
+                    <button id="btn-cam" onclick="toggleVideo()"
+                        class="group flex flex-col items-center gap-1 transition-all active:scale-95">
+                        <div
+                            class="w-12 h-12 rounded-full bg-slate-700/50 group-hover:bg-slate-600 text-white flex items-center justify-center border border-white/10 transition-colors relative overflow-hidden">
+                            <span class="material-icons-round text-xl relative z-10" id="icon-cam">videocam</span>
+                            <div class="absolute inset-0 bg-red-500 opacity-0 transition-opacity" id="bg-cam"></div>
+                        </div>
+                    </button>
+
+                    <div class="w-px h-8 bg-white/10 mx-2"></div>
+
+                    <button onclick="endCall()"
+                        class="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg shadow-red-500/30 transition-all active:scale-90 active:rotate-12">
+                        <span class="material-icons-round text-2xl">call_end</span>
+                    </button>
                 </div>
             </div>
 
             <div
-                class="w-72 h-48 absolute bottom-10 right-10 rounded-xl overflow-hidden shadow-2xl border-2 border-white/20 z-10 bg-slate-700">
-                <video id="local-video" class="w-full h-full" autoplay muted playsinline></video>
-                <div class="absolute bottom-2 left-2 px-2 py-1 bg-black/50 rounded text-[10px] backdrop-blur-md">YOU
-                </div>
-            </div>
-        </main>
-
-        <footer class="p-8 flex justify-center items-center gap-6">
-            <div class="flex items-center gap-2 bg-slate-800 p-2 rounded-2xl border border-white/10">
-                <input type="text" id="remote-id" placeholder="Paste Friend's Key..."
-                    class="bg-transparent border-none outline-none px-4 py-2 w-64 text-sm">
-                <button onclick="makeCall()" id="call-btn"
-                    class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl transition-all flex items-center gap-2 font-medium">
-                    <i data-lucide="phone-forwarded" class="w-4 h-4"></i> Join Room
-                </button>
+                class="pointer-events-auto w-32 sm:w-48 aspect-[3/4] sm:aspect-video rounded-2xl overflow-hidden shadow-2xl border-2 border-white/10 bg-slate-800 relative group cursor-pointer transition-transform hover:scale-105">
+                <video id="local-video" autoplay muted playsinline></video>
+                <div
+                    class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[10px] font-bold tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">
+                    YOU</div>
             </div>
 
-            <div class="flex gap-4">
-                <button
-                    class="p-4 rounded-full bg-slate-800 hover:bg-slate-700 border border-white/10 transition-colors">
-                    <i data-lucide="mic" class="w-5 h-5"></i>
-                </button>
-                <button
-                    class="p-4 rounded-full bg-slate-800 hover:bg-slate-700 border border-white/10 transition-colors">
-                    <i data-lucide="video" class="w-5 h-5"></i>
-                </button>
-                <button
-                    class="p-4 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white border border-red-500/50 transition-all">
-                    <i data-lucide="phone-off" class="w-5 h-5"></i>
-                </button>
-            </div>
-        </footer>
-
-        <div id="loading-overlay"
-            class="hidden absolute inset-0 z-50 bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center">
-            <div class="relative">
-                <div class="w-24 h-24 rounded-full border-4 border-blue-500/30"></div>
-                <div class="absolute inset-0 w-24 h-24 rounded-full border-4 border-blue-500 joining-anim"></div>
-            </div>
-            <p class="mt-6 text-xl font-medium tracking-widest text-blue-400">ESTABLISHING ENCRYPTED LINK</p>
         </div>
     </div>
 
-    <script>
-        // Initialize Icons
-        lucide.createIcons();
+    <div id="toast"
+        class="fixed top-24 left-1/2 -translate-x-1/2 glass px-6 py-3 rounded-full shadow-2xl transform transition-all duration-300 translate-y-[-150%] opacity-0 z-50 flex items-center gap-3">
+        <span class="material-icons-round text-green-400 text-lg">check_circle</span>
+        <span id="toast-msg" class="text-sm font-medium">Notification</span>
+    </div>
 
+    <script>
         const peer = new Peer();
+        let myStream;
+        let currentCall;
+
         const localVideo = document.getElementById('local-video');
         const remoteVideo = document.getElementById('remote-video');
-        const overlay = document.getElementById('loading-overlay');
-        const placeholder = document.getElementById('placeholder');
-        let localStream;
+        const statusDisplay = document.getElementById('status-display');
 
-        // Get ID
+        // 1. INITIAL SETUP
         peer.on('open', (id) => {
             document.getElementById('my-id').innerText = id;
+            showToast("Ready to connect");
         });
 
-        // Setup Camera
+        // 2. GET MEDIA
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then(stream => {
-                localStream = stream;
+                myStream = stream;
                 localVideo.srcObject = stream;
+            })
+            .catch(err => {
+                console.error("Camera Error:", err);
+                alert("Please allow camera access!");
             });
 
-        // Answer Call
-        peer.on('call', call => {
-            showLoading();
-            call.answer(localStream);
-            call.on('stream', userStream => {
-                handleRemoteStream(userStream);
-            });
+        // 3. ANSWER CALL
+        peer.on('call', (call) => {
+            if (confirm("Incoming call... Answer?")) {
+                currentCall = call;
+                call.answer(myStream);
+                handleCall(call);
+            }
         });
 
-        function makeCall() {
-            const destId = document.getElementById('remote-id').value;
-            if (!destId) return;
+        // 4. START CALL
+        function joinCall() {
+            const friendId = document.getElementById('friend-id').value;
+            if (!friendId) return showToast("Please enter a Key first");
 
-            showLoading();
-            const call = peer.call(destId, localStream);
-            call.on('stream', userStream => {
-                handleRemoteStream(userStream);
+            showToast("Connecting...");
+            const call = peer.call(friendId, myStream);
+            handleCall(call);
+            currentCall = call;
+        }
+
+        // 5. HANDLE STREAM EVENTS
+        function handleCall(call) {
+            document.getElementById('btn-join').innerText = "Connected";
+            document.getElementById('btn-join').classList.add('bg-green-600');
+
+            call.on('stream', (remoteStream) => {
+                statusDisplay.classList.add('opacity-0'); // Hide waiting text
+                remoteVideo.srcObject = remoteStream;
+                remoteVideo.classList.remove('opacity-0'); // Show friend
+            });
+
+            call.on('close', () => {
+                endCall();
             });
         }
 
-        function handleRemoteStream(stream) {
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-                placeholder.classList.add('hidden');
-                remoteVideo.srcObject = stream;
-            }, 2000); // Artificial delay for smooth animation feel
+        // --- BUTTON CONTROLS (FIXED) ---
+
+        // Toggle Audio
+        function toggleAudio() {
+            if (!myStream) return;
+            const audioTrack = myStream.getAudioTracks()[0];
+            audioTrack.enabled = !audioTrack.enabled;
+
+            // UI Update
+            const btn = document.getElementById('btn-mic');
+            const icon = document.getElementById('icon-mic');
+            const bg = document.getElementById('bg-mic');
+
+            if (audioTrack.enabled) {
+                icon.innerText = "mic";
+                bg.classList.remove('opacity-100');
+                btn.classList.remove('text-red-200');
+            } else {
+                icon.innerText = "mic_off";
+                bg.classList.add('opacity-100'); // Red background
+                btn.classList.add('text-white');
+            }
         }
 
-        function showLoading() {
-            overlay.classList.remove('hidden');
+        // Toggle Video
+        function toggleVideo() {
+            if (!myStream) return;
+            const videoTrack = myStream.getVideoTracks()[0];
+            videoTrack.enabled = !videoTrack.enabled;
+
+            // UI Update
+            const icon = document.getElementById('icon-cam');
+            const bg = document.getElementById('bg-cam');
+
+            if (videoTrack.enabled) {
+                icon.innerText = "videocam";
+                bg.classList.remove('opacity-100');
+            } else {
+                icon.innerText = "videocam_off";
+                bg.classList.add('opacity-100');
+            }
         }
 
-        async function copyId() {
+        // Hang Up
+        function endCall() {
+            if (currentCall) currentCall.close();
+            window.location.reload(); // Reload to reset fresh
+        }
+
+        // Utilities
+        function copyId() {
             const id = document.getElementById('my-id').innerText;
-            await navigator.clipboard.writeText(id);
-            alert("ID Copied to Clipboard!");
+            navigator.clipboard.writeText(id);
+            showToast("Key copied to clipboard");
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            toastMsg.innerText = msg;
+            toast.classList.remove('translate-y-[-150%]', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-[-150%]', 'opacity-0');
+            }, 3000);
         }
     </script>
 </body>
