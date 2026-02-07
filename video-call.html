@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Nexus Connect</title>
+    <title>Instant Video Call</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
@@ -17,6 +17,7 @@
             font-family: 'Inter', sans-serif;
             background-color: #020617;
             height: 100dvh;
+            /* Fix for mobile browser bars */
             overflow: hidden;
             margin: 0;
         }
@@ -28,24 +29,22 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* The dynamic height fix for mobile browsers */
+        /* Bottom padding for iPhone Home Indicator and Android Gestures */
         .safe-bottom {
-            padding-bottom: calc(1.2rem + env(safe-area-inset-bottom, 0px));
+            padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
         }
 
-        /* FRAME FLEXIBILITY CLASSES */
+        /* Frame Flexibility Styles */
         video {
             width: 100%;
             height: 100%;
-            transition: object-fit 0.3s ease;
+            transition: object-fit 0.4s ease;
         }
 
-        /* Default state: Fill the screen */
         .video-cover {
             object-fit: cover;
         }
 
-        /* Alternative state: Show full frame with bars */
         .video-contain {
             object-fit: contain;
             background-color: #000;
@@ -58,7 +57,7 @@
         .ui-hidden {
             opacity: 0;
             pointer-events: none;
-            transform: translateY(15px);
+            transform: translateY(20px);
         }
 
         .transition-all {
@@ -76,56 +75,59 @@
         <div id="status-display" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <div
                 class="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center border border-blue-500/20 mb-4 animate-pulse">
-                <span class="material-icons-round text-2xl text-blue-400">sync</span>
+                <span class="material-icons-round text-2xl text-blue-400">videocam</span>
             </div>
-            <p id="status-text" class="text-slate-500 text-sm font-light tracking-widest">CONNECTING...</p>
+            <p id="status-text" class="text-slate-400 text-sm font-light tracking-widest uppercase">Initializing Call...
+            </p>
         </div>
     </div>
 
     <div id="connection-panel" class="absolute top-6 left-0 right-0 z-20 flex justify-center px-4 transition-all">
         <div class="glass rounded-2xl p-3 flex items-center gap-3 shadow-2xl w-full max-w-sm">
             <div class="flex-1 min-w-0 ml-2">
-                <p class="text-[9px] uppercase tracking-tighter text-slate-500 font-bold">Meeting Room</p>
-                <p id="meeting-url" class="text-xs font-mono text-blue-400 truncate opacity-80">Syncing...</p>
+                <p class="text-[9px] uppercase tracking-widest text-slate-500 font-bold">Instant Video Call</p>
+                <p id="meeting-url" class="text-xs font-mono text-blue-400 truncate opacity-80 italic">Setting up
+                    room...</p>
             </div>
             <button onclick="copyLink()"
                 class="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 p-2.5 rounded-xl transition-all active:scale-90 border border-blue-500/30">
-                <span class="material-icons-round text-sm">link</span>
+                <span class="material-icons-round text-sm">content_copy</span>
             </button>
         </div>
     </div>
 
     <div id="local-container"
-        class="absolute top-24 right-4 z-10 w-24 sm:w-40 aspect-[3/4] sm:aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-slate-900 transition-all">
+        class="absolute top-24 right-4 z-10 w-28 sm:w-44 aspect-[3/4] sm:aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-slate-900 transition-all">
         <video id="local-video" autoplay muted playsinline class="mirror video-cover"></video>
     </div>
 
     <div id="controls-bar"
         class="absolute bottom-0 left-0 right-0 z-20 flex justify-center safe-bottom transition-all px-4">
-        <div class="glass px-4 py-3 rounded-[2.5rem] flex items-center gap-3 sm:gap-4 shadow-2xl pointer-events-auto">
+        <div class="glass px-5 py-3 rounded-[2.5rem] flex items-center gap-4 sm:gap-6 shadow-2xl pointer-events-auto">
 
             <button onclick="toggleFrameFit()"
-                class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-slate-800/50 flex items-center justify-center border border-white/5 hover:bg-slate-700">
+                class="w-12 h-12 rounded-full bg-slate-800/50 flex items-center justify-center border border-white/5 hover:bg-slate-700 transition-colors"
+                title="Toggle Frame">
                 <span id="frame-icon" class="material-icons-round text-xl text-slate-300">aspect_ratio</span>
             </button>
 
             <button id="device-action" onclick="handleDeviceAction()"
-                class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-slate-800/50 flex items-center justify-center border border-white/5">
+                class="w-12 h-12 rounded-full bg-slate-800/50 flex items-center justify-center border border-white/5">
                 <span id="device-icon" class="material-icons-round text-xl text-slate-300">screen_share</span>
             </button>
 
             <button onclick="toggleAudio()" id="btn-mic"
-                class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-slate-800/50 flex items-center justify-center border border-white/5">
+                class="w-12 h-12 rounded-full bg-slate-800/50 flex items-center justify-center border border-white/5">
                 <span id="mic-icon" class="material-icons-round text-xl text-slate-300">mic</span>
             </button>
 
             <button onclick="toggleVideo()" id="btn-cam"
-                class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-slate-800/50 flex items-center justify-center border border-white/5">
+                class="w-12 h-12 rounded-full bg-slate-800/50 flex items-center justify-center border border-white/5">
                 <span id="cam-icon" class="material-icons-round text-xl text-slate-300">videocam</span>
             </button>
 
             <button onclick="endCall()"
-                class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-900/40 active:scale-95 ml-2">
+                class="w-14 h-14 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-900/40 active:scale-95 ml-2">
                 <span class="material-icons-round text-2xl">call_end</span>
             </button>
         </div>
@@ -138,12 +140,13 @@
 
     <script>
         let peer, myStream, currentCall, isScreenSharing = false, facingMode = 'user', uiVisible = true;
-        let isVideoContained = false; // Track frame flexibility state
+        let isVideoContained = false;
 
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         const urlParams = new URLSearchParams(window.location.search);
         let roomID = urlParams.get('room');
 
+        // Set Icon based on Device
         document.getElementById('device-icon').innerText = isMobile ? 'flip_camera_ios' : 'screen_share';
 
         init();
@@ -154,11 +157,12 @@
                 document.getElementById('local-video').srcObject = myStream;
                 setupPeer();
             } catch (e) {
-                showToast("Please allow camera/mic access");
+                showToast("Please allow Camera & Mic access");
             }
         }
 
         function setupPeer() {
+            // Attempt to join the room in URL, or create new
             peer = roomID ? new Peer(roomID) : new Peer();
 
             peer.on('open', (id) => {
@@ -166,11 +170,12 @@
                 const link = `${window.location.origin}${window.location.pathname}?room=${id}`;
                 document.getElementById('meeting-url').innerText = link;
                 window.history.replaceState({}, '', `?room=${id}`);
-                document.getElementById('status-text').innerText = "WAITING FOR PARTNER";
+                document.getElementById('status-text').innerText = "Waiting for partner...";
             });
 
             peer.on('error', (err) => {
                 if (err.type === 'unavailable-id') {
+                    // ID taken? We are the guest, join as random ID and call the roomID
                     peer = new Peer();
                     peer.on('open', () => startCall(roomID));
                 }
@@ -200,10 +205,7 @@
             call.on('close', () => window.location.reload());
         }
 
-        /**
-         * FRAME FLEXIBILITY TOGGLE
-         * Swaps between filling the screen and showing the original frame
-         */
+        // FRAME FLEXIBILITY TOGGLE
         function toggleFrameFit() {
             isVideoContained = !isVideoContained;
             const remoteVideo = document.getElementById('remote-video');
@@ -211,16 +213,16 @@
 
             if (isVideoContained) {
                 remoteVideo.classList.replace('video-cover', 'video-contain');
-                icon.innerText = 'fullscreen'; // Icon suggesting "back to full screen"
-                showToast("Frame: Fit to screen");
+                icon.innerText = 'fullscreen';
+                showToast("Frame: Fit to Screen");
             } else {
                 remoteVideo.classList.replace('video-contain', 'video-cover');
-                icon.innerText = 'aspect_ratio'; // Icon suggesting "back to original"
-                showToast("Frame: Fill screen");
+                icon.innerText = 'aspect_ratio';
+                showToast("Frame: Full Screen");
             }
         }
 
-        // CONTROL HANDLERS
+        // DEVICE CONTROLS
         function handleDeviceAction() {
             if (isMobile) {
                 facingMode = facingMode === 'user' ? 'environment' : 'user';
@@ -281,7 +283,7 @@
         }
 
         function endCall() {
-            window.location.href = window.location.pathname;
+            window.location.href = window.location.origin + window.location.pathname;
         }
 
         function copyLink() {
@@ -296,6 +298,7 @@
             setTimeout(() => toast.classList.add('-translate-y-20', 'opacity-0'), 2500);
         }
 
+        // Tap background to toggle UI visibility
         document.getElementById('video-container').addEventListener('click', () => {
             uiVisible = !uiVisible;
             document.getElementById('controls-bar').classList.toggle('ui-hidden', !uiVisible);
