@@ -4,12 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Nexus | Immersive Connect</title>
+    <title>Nexus | Instant Connect</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
-
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
     <script>
@@ -32,35 +30,30 @@
             overflow: hidden;
         }
 
-        /* Glassmorphism Utilities */
         .glass {
-            background: rgba(15, 23, 42, 0.65);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* UI Visibility States */
         .ui-hidden {
             opacity: 0;
             pointer-events: none;
             transform: translateY(20px);
         }
 
-        /* Video Styling */
         video {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
 
-        /* Mirror local video (unless using back camera) */
         .mirror {
             transform: scaleX(-1);
         }
 
-        /* Icon Button Hover */
         .btn-icon {
             transition: all 0.2s;
         }
@@ -73,7 +66,7 @@
 
 <body class="h-screen w-screen relative text-white">
 
-    <div id="video-container" class="absolute inset-0 z-0 bg-gray-900 cursor-pointer">
+    <div id="video-container" class="absolute inset-0 z-0 bg-slate-950 cursor-pointer">
         <video id="remote-video" autoplay playsinline
             class="w-full h-full opacity-0 transition-opacity duration-1000"></video>
 
@@ -82,44 +75,33 @@
                 <div class="absolute inset-0 bg-blue-500 rounded-full blur-3xl opacity-20 animate-pulse-slow"></div>
                 <div
                     class="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/10 mb-6">
-                    <span class="material-icons-round text-4xl text-blue-400">videocam</span>
+                    <span class="material-icons-round text-4xl text-blue-400">group_add</span>
                 </div>
             </div>
-            <h2 class="text-xl font-light tracking-wide text-slate-300">Waiting for connection...</h2>
+            <h2 id="status-text" class="text-xl font-light tracking-wide text-slate-300 px-6 text-center">Ready to start
+                a meeting</h2>
         </div>
     </div>
 
     <div id="connection-panel"
         class="absolute top-6 left-0 right-0 z-20 flex justify-center px-4 transition-all duration-500">
-        <div
-            class="glass rounded-2xl p-2 flex flex-col sm:flex-row items-center gap-2 sm:gap-4 shadow-2xl max-w-2xl w-full sm:w-auto">
-            <div
-                class="flex items-center gap-3 bg-slate-800/50 px-4 py-2 rounded-xl border border-white/5 w-full sm:w-auto justify-between">
-                <div class="flex flex-col">
-                    <span class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">My Key</span>
-                    <span id="my-id" class="font-mono text-blue-400 font-medium tracking-wide">...</span>
-                </div>
-                <button onclick="copyId()" class="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95">
-                    <span class="material-icons-round text-lg text-slate-300">content_copy</span>
-                </button>
+        <div class="glass rounded-2xl p-3 flex flex-col sm:flex-row items-center gap-4 shadow-2xl max-w-lg w-full">
+            <div class="flex-1 min-w-0">
+                <p class="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Meeting Link</p>
+                <p id="meeting-url" class="text-sm font-mono text-blue-400 truncate opacity-80">Generating link...</p>
             </div>
-            <div class="flex items-center gap-2 w-full sm:w-auto">
-                <input type="text" id="friend-id" placeholder="Enter Friend's Key"
-                    class="bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-all w-full sm:w-48 font-mono">
-                <button onclick="joinCall()" id="btn-join"
-                    class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium shadow-lg transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap">
-                    <span>Join</span>
-                    <span class="material-icons-round text-sm">login</span>
-                </button>
-            </div>
+            <button onclick="copyMeetingLink()"
+                class="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-900/40">
+                <span class="material-icons-round text-lg">content_copy</span>
+                <span>Copy Link</span>
+            </button>
         </div>
     </div>
 
     <div id="controls-bar"
         class="absolute bottom-6 left-0 right-0 z-20 flex justify-center items-end px-4 pointer-events-none transition-all duration-300">
-
         <div
-            class="glass px-4 py-3 rounded-full flex items-center gap-3 sm:gap-6 shadow-2xl pointer-events-auto max-w-[95vw] overflow-hidden justify-center">
+            class="glass px-4 py-3 rounded-full flex items-center gap-3 sm:gap-6 shadow-2xl pointer-events-auto max-w-[95vw] justify-center">
 
             <button onclick="toggleScreenShare()" id="btn-screen"
                 class="hidden sm:flex btn-icon w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-700/50 hover:bg-slate-600 text-white items-center justify-center border border-white/10"
@@ -134,22 +116,19 @@
             </button>
 
             <button onclick="toggleAudio()" id="btn-mic"
-                class="btn-icon w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-700/50 hover:bg-slate-600 text-white flex items-center justify-center border border-white/10 group">
-                <span class="material-icons-round text-xl group-hover:hidden">mic</span>
-                <span class="material-icons-round text-xl hidden group-hover:block">mic_off</span>
+                class="btn-icon w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-700/50 hover:bg-slate-600 text-white flex items-center justify-center border border-white/10">
+                <span id="mic-icon" class="material-icons-round text-xl">mic</span>
             </button>
 
             <button onclick="toggleVideo()" id="btn-cam"
-                class="btn-icon w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-700/50 hover:bg-slate-600 text-white flex items-center justify-center border border-white/10 group">
-                <span class="material-icons-round text-xl group-hover:hidden">videocam</span>
-                <span class="material-icons-round text-xl hidden group-hover:block">videocam_off</span>
+                class="btn-icon w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-700/50 hover:bg-slate-600 text-white flex items-center justify-center border border-white/10">
+                <span id="cam-icon" class="material-icons-round text-xl">videocam</span>
             </button>
 
             <button onclick="endCall()"
                 class="btn-icon w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg shadow-red-500/30">
                 <span class="material-icons-round text-xl">call_end</span>
             </button>
-
         </div>
     </div>
 
@@ -160,98 +139,66 @@
 
     <div id="toast"
         class="fixed top-24 left-1/2 -translate-x-1/2 glass px-6 py-3 rounded-full shadow-2xl transform transition-all duration-300 translate-y-[-150%] opacity-0 z-50 flex items-center gap-3">
-        <span class="material-icons-round text-green-400 text-lg">info</span>
+        <span class="material-icons-round text-blue-400 text-lg">info</span>
         <span id="toast-msg" class="text-sm font-medium">Notification</span>
     </div>
 
     <script>
         const peer = new Peer();
-        let myStream;
-        let currentCall;
-        let isScreenSharing = false;
-        let currentFacingMode = 'user';
-        let uiVisible = true;
-
-        // Detect Mobile Device
+        let myStream, currentCall, isScreenSharing = false, currentFacingMode = 'user', uiVisible = true;
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+        // Elements
         const localVideo = document.getElementById('local-video');
         const remoteVideo = document.getElementById('remote-video');
         const statusDisplay = document.getElementById('status-display');
+        const statusText = document.getElementById('status-text');
         const connectionPanel = document.getElementById('connection-panel');
         const controlsBar = document.getElementById('controls-bar');
         const localContainer = document.getElementById('local-container');
 
-        // --- 1. INITIALIZATION ---
-
-        // Adjust UI based on Device
-        window.onload = () => {
-            if (isMobile) {
-                // Ensure flip button is shown, screen share is hidden
-                document.getElementById('btn-screen').style.display = 'none';
-                document.getElementById('btn-flip').style.display = 'flex';
-            } else {
-                // Ensure screen share is shown, flip is hidden
-                document.getElementById('btn-screen').style.display = 'flex';
-                document.getElementById('btn-flip').style.display = 'none';
-            }
-        };
+        // URL Room Logic
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomID = urlParams.get('room');
 
         peer.on('open', (id) => {
-            document.getElementById('my-id').innerText = id;
-        });
+            const meetingURL = `${window.location.origin}${window.location.pathname}?room=${id}`;
+            document.getElementById('meeting-url').innerText = meetingURL;
 
-        startCamera();
+            if (roomID) {
+                statusText.innerText = "Joining meeting...";
+                showToast("Auto-joining call...");
+                setTimeout(() => startCall(roomID), 1000); // Small delay to ensure camera is ready
+            }
+        });
 
         async function startCamera(facingMode = 'user') {
             try {
-                if (myStream) {
-                    myStream.getTracks().forEach(track => track.stop());
-                }
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: facingMode },
-                    audio: true
-                });
-                myStream = stream;
-                localVideo.srcObject = stream;
-
-                // Mirror effect only for front camera
-                if (facingMode === 'user') {
-                    localVideo.classList.add('mirror');
-                } else {
-                    localVideo.classList.remove('mirror');
-                }
-
-                if (currentCall) {
-                    replaceSenderTrack(stream.getVideoTracks()[0]);
-                }
+                if (myStream) myStream.getTracks().forEach(track => track.stop());
+                myStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: true });
+                localVideo.srcObject = myStream;
+                localVideo.classList.toggle('mirror', facingMode === 'user');
+                if (currentCall) replaceSenderTrack(myStream.getVideoTracks()[0]);
             } catch (err) {
-                console.error("Camera Error:", err);
                 showToast("Camera access denied");
             }
         }
 
-        // --- 2. CONNECTION LOGIC ---
+        // Connection Handling
         peer.on('call', (call) => {
-            if (confirm("Incoming call... Answer?")) {
-                currentCall = call;
-                call.answer(myStream);
-                handleCall(call);
-            }
+            currentCall = call;
+            call.answer(myStream);
+            setupCallListeners(call);
         });
 
-        function joinCall() {
-            const friendId = document.getElementById('friend-id').value;
-            if (!friendId) return showToast("Enter a Key first");
-
-            showToast("Connecting...");
-            const call = peer.call(friendId, myStream);
-            handleCall(call);
+        function startCall(targetId) {
+            const call = peer.call(targetId, myStream);
             currentCall = call;
+            setupCallListeners(call);
         }
 
-        function handleCall(call) {
-            connectionPanel.classList.add('hidden');
+        function setupCallListeners(call) {
+            connectionPanel.classList.add('hidden'); // Hide invite link when connected
             call.on('stream', (remoteStream) => {
                 statusDisplay.classList.add('hidden');
                 remoteVideo.srcObject = remoteStream;
@@ -260,41 +207,27 @@
             call.on('close', endCall);
         }
 
-        // --- 3. UI INTERACTION (TAP TO HIDE) ---
-        document.getElementById('video-container').addEventListener('click', (e) => {
+        // UI Toggles
+        document.getElementById('video-container').addEventListener('click', () => {
             uiVisible = !uiVisible;
-            if (uiVisible) {
-                controlsBar.classList.remove('ui-hidden');
-                localContainer.classList.remove('opacity-0');
-            } else {
-                controlsBar.classList.add('ui-hidden');
-                localContainer.classList.add('opacity-0');
-            }
+            [controlsBar, localContainer].forEach(el => el.classList.toggle('ui-hidden', !uiVisible));
         });
 
-        // --- 4. DEVICE SPECIFIC CONTROLS ---
-
+        // Controls
         async function toggleScreenShare() {
-            if (isMobile) return showToast("Not supported on mobile");
-
+            if (isMobile) return;
             const btn = document.getElementById('btn-screen');
-
             if (!isScreenSharing) {
                 try {
                     const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
                     const screenTrack = screenStream.getVideoTracks()[0];
                     replaceSenderTrack(screenTrack);
-
                     localVideo.srcObject = screenStream;
                     localVideo.classList.remove('mirror');
-
                     screenTrack.onended = () => toggleScreenShare();
-
                     isScreenSharing = true;
                     btn.classList.add('text-blue-400', 'bg-white/20');
-                } catch (err) {
-                    console.log("Screen share cancelled");
-                }
+                } catch (e) { }
             } else {
                 await startCamera(currentFacingMode);
                 isScreenSharing = false;
@@ -303,49 +236,40 @@
         }
 
         async function flipCamera() {
-            if (isScreenSharing) return;
             currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
             await startCamera(currentFacingMode);
         }
 
+        function toggleAudio() {
+            const track = myStream.getAudioTracks()[0];
+            track.enabled = !track.enabled;
+            document.getElementById('mic-icon').innerText = track.enabled ? 'mic' : 'mic_off';
+            document.getElementById('btn-mic').classList.toggle('bg-white', !track.enabled);
+            document.getElementById('btn-mic').classList.toggle('text-slate-900', !track.enabled);
+        }
+
+        function toggleVideo() {
+            const track = myStream.getVideoTracks()[0];
+            track.enabled = !track.enabled;
+            document.getElementById('cam-icon').innerText = track.enabled ? 'videocam' : 'videocam_off';
+            document.getElementById('btn-cam').classList.toggle('bg-white', !track.enabled);
+            document.getElementById('btn-cam').classList.toggle('text-slate-900', !track.enabled);
+        }
+
         function replaceSenderTrack(newTrack) {
-            if (currentCall && currentCall.peerConnection) {
+            if (currentCall?.peerConnection) {
                 const sender = currentCall.peerConnection.getSenders().find(s => s.track.kind === 'video');
                 if (sender) sender.replaceTrack(newTrack);
             }
         }
 
-        // --- 5. BASIC CONTROLS ---
-
-        function toggleAudio() {
-            if (!myStream) return;
-            const audioTrack = myStream.getAudioTracks()[0];
-            audioTrack.enabled = !audioTrack.enabled;
-            const btn = document.getElementById('btn-mic');
-            btn.className = audioTrack.enabled
-                ? "btn-icon w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-700/50 hover:bg-slate-600 text-white flex items-center justify-center border border-white/10 group"
-                : "btn-icon w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-lg";
-        }
-
-        function toggleVideo() {
-            if (!myStream) return;
-            const videoTrack = myStream.getVideoTracks()[0];
-            videoTrack.enabled = !videoTrack.enabled;
-            const btn = document.getElementById('btn-cam');
-            btn.className = videoTrack.enabled
-                ? "btn-icon w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-700/50 hover:bg-slate-600 text-white flex items-center justify-center border border-white/10 group"
-                : "btn-icon w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-lg";
-        }
-
         function endCall() {
-            if (currentCall) currentCall.close();
-            window.location.reload();
+            window.location.href = window.location.pathname; // Redirect to clean URL
         }
 
-        function copyId() {
-            const id = document.getElementById('my-id').innerText;
-            navigator.clipboard.writeText(id);
-            showToast("Copied!");
+        function copyMeetingLink() {
+            navigator.clipboard.writeText(document.getElementById('meeting-url').innerText);
+            showToast("Meeting link copied!");
         }
 
         function showToast(msg) {
@@ -353,6 +277,14 @@
             document.getElementById('toast-msg').innerText = msg;
             toast.classList.remove('translate-y-[-150%]', 'opacity-0');
             setTimeout(() => toast.classList.add('translate-y-[-150%]', 'opacity-0'), 3000);
+        }
+
+        // Init
+        startCamera();
+        if (isMobile) {
+            document.getElementById('btn-screen').remove();
+        } else {
+            document.getElementById('btn-flip').remove();
         }
     </script>
 </body>
