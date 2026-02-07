@@ -116,17 +116,19 @@
     </div>
 
     <div id="controls-bar"
-        class="absolute bottom-8 left-0 right-0 z-20 flex justify-center items-end px-4 pointer-events-none">
-        <div class="glass px-4 py-3 rounded-3xl flex items-center gap-3 sm:gap-6 shadow-2xl pointer-events-auto">
+        class="absolute bottom-6 left-0 right-0 z-20 flex justify-center items-end px-4 pointer-events-none transition-all duration-300">
+
+        <div
+            class="glass px-4 py-3 rounded-full flex items-center gap-3 sm:gap-6 shadow-2xl pointer-events-auto max-w-[95vw] overflow-hidden justify-center">
 
             <button onclick="toggleScreenShare()" id="btn-screen"
-                class="btn-icon w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-700/50 hover:bg-slate-600 text-white flex items-center justify-center border border-white/10"
+                class="hidden sm:flex btn-icon w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-700/50 hover:bg-slate-600 text-white items-center justify-center border border-white/10"
                 title="Share Screen">
                 <span class="material-icons-round text-xl">screen_share</span>
             </button>
 
-            <button onclick="flipCamera()"
-                class="btn-icon w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-700/50 hover:bg-slate-600 text-white flex items-center justify-center border border-white/10"
+            <button onclick="flipCamera()" id="btn-flip"
+                class="sm:hidden flex btn-icon w-12 h-12 rounded-full bg-slate-700/50 hover:bg-slate-600 text-white items-center justify-center border border-white/10"
                 title="Flip Camera">
                 <span class="material-icons-round text-xl">flip_camera_ios</span>
             </button>
@@ -152,7 +154,7 @@
     </div>
 
     <div id="local-container"
-        class="absolute bottom-28 right-4 z-30 w-28 sm:w-48 aspect-[3/4] sm:aspect-video rounded-xl overflow-hidden shadow-2xl border-2 border-white/20 bg-slate-800 transition-all duration-500">
+        class="absolute bottom-24 right-4 z-30 w-28 sm:w-48 aspect-[3/4] sm:aspect-video rounded-xl overflow-hidden shadow-2xl border-2 border-white/20 bg-slate-800 transition-all duration-500">
         <video id="local-video" autoplay muted playsinline class="mirror"></video>
     </div>
 
@@ -170,6 +172,9 @@
         let currentFacingMode = 'user';
         let uiVisible = true;
 
+        // Detect Mobile Device
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
         const localVideo = document.getElementById('local-video');
         const remoteVideo = document.getElementById('remote-video');
         const statusDisplay = document.getElementById('status-display');
@@ -178,11 +183,24 @@
         const localContainer = document.getElementById('local-container');
 
         // --- 1. INITIALIZATION ---
+
+        // Adjust UI based on Device
+        window.onload = () => {
+            if (isMobile) {
+                // Ensure flip button is shown, screen share is hidden
+                document.getElementById('btn-screen').style.display = 'none';
+                document.getElementById('btn-flip').style.display = 'flex';
+            } else {
+                // Ensure screen share is shown, flip is hidden
+                document.getElementById('btn-screen').style.display = 'flex';
+                document.getElementById('btn-flip').style.display = 'none';
+            }
+        };
+
         peer.on('open', (id) => {
             document.getElementById('my-id').innerText = id;
         });
 
-        // Initial Camera Start
         startCamera();
 
         async function startCamera(facingMode = 'user') {
@@ -197,14 +215,13 @@
                 myStream = stream;
                 localVideo.srcObject = stream;
 
-                // Mirror effect logic
+                // Mirror effect only for front camera
                 if (facingMode === 'user') {
                     localVideo.classList.add('mirror');
                 } else {
                     localVideo.classList.remove('mirror');
                 }
 
-                // If in a call, replace the video track sender
                 if (currentCall) {
                     replaceSenderTrack(stream.getVideoTracks()[0]);
                 }
@@ -234,23 +251,17 @@
         }
 
         function handleCall(call) {
-            // HIDE THE TOP BAR ON CONNECT
             connectionPanel.classList.add('hidden');
-
             call.on('stream', (remoteStream) => {
                 statusDisplay.classList.add('hidden');
                 remoteVideo.srcObject = remoteStream;
                 remoteVideo.classList.remove('opacity-0');
             });
-
             call.on('close', endCall);
         }
 
         // --- 3. UI INTERACTION (TAP TO HIDE) ---
-        document.body.addEventListener('click', (e) => {
-            // Don't toggle if clicking buttons or inputs
-            if (e.target.closest('button') || e.target.closest('input')) return;
-
+        document.getElementById('video-container').addEventListener('click', (e) => {
             uiVisible = !uiVisible;
             if (uiVisible) {
                 controlsBar.classList.remove('ui-hidden');
@@ -261,28 +272,23 @@
             }
         });
 
-        // --- 4. ADVANCED CONTROLS ---
+        // --- 4. DEVICE SPECIFIC CONTROLS ---
 
-        // Screen Share
         async function toggleScreenShare() {
+            if (isMobile) return showToast("Not supported on mobile");
+
             const btn = document.getElementById('btn-screen');
 
             if (!isScreenSharing) {
                 try {
                     const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
                     const screenTrack = screenStream.getVideoTracks()[0];
-
-                    // Replace video track for peer
                     replaceSenderTrack(screenTrack);
 
-                    // Show local user what they are sharing
                     localVideo.srcObject = screenStream;
                     localVideo.classList.remove('mirror');
 
-                    // Handle "Stop Sharing" via browser UI
-                    screenTrack.onended = () => {
-                        toggleScreenShare(); // Trigger toggle to revert
-                    };
+                    screenTrack.onended = () => toggleScreenShare();
 
                     isScreenSharing = true;
                     btn.classList.add('text-blue-400', 'bg-white/20');
@@ -290,27 +296,22 @@
                     console.log("Screen share cancelled");
                 }
             } else {
-                // Stop Sharing - Revert to Camera
                 await startCamera(currentFacingMode);
                 isScreenSharing = false;
                 btn.classList.remove('text-blue-400', 'bg-white/20');
             }
         }
 
-        // Flip Camera (Mobile)
         async function flipCamera() {
-            if (isScreenSharing) return showToast("Stop screen share first");
+            if (isScreenSharing) return;
             currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
             await startCamera(currentFacingMode);
         }
 
-        // Helper to replace track in active call without dropping connection
         function replaceSenderTrack(newTrack) {
             if (currentCall && currentCall.peerConnection) {
                 const sender = currentCall.peerConnection.getSenders().find(s => s.track.kind === 'video');
-                if (sender) {
-                    sender.replaceTrack(newTrack);
-                }
+                if (sender) sender.replaceTrack(newTrack);
             }
         }
 
@@ -331,7 +332,9 @@
             const videoTrack = myStream.getVideoTracks()[0];
             videoTrack.enabled = !videoTrack.enabled;
             const btn = document.getElementById('btn-cam');
-            // Toggle icon/color logic here if desired
+            btn.className = videoTrack.enabled
+                ? "btn-icon w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-700/50 hover:bg-slate-600 text-white flex items-center justify-center border border-white/10 group"
+                : "btn-icon w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-lg";
         }
 
         function endCall() {
